@@ -5,6 +5,9 @@ description = "Quant Developer assignment — Vera Developers"
 authors = ["Anubhav Jha <anubhavjha0812@gmail.com>"]
 packages = [{ include = "vera_quant", from = "src" }]
 
+[tool.poetry.scripts]
+demo-backtest = "vera_quant.cli:demo_backtest"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 pandas = "^2.2"

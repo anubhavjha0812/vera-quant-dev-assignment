@@ -1,0 +1,23 @@
+# Good-to-have infra (DECISIONS.md #21): Redis for a latest-tick cache and
+# Grafana for monitoring. Neither is wired into the app code yet — both
+# are here so the shape exists and is a short step away, not a rewrite.
+services:
+  app:
+    build: .
+    volumes:
+      - ./:/app
+    command: ["python", "scripts/demo_backtest.py"]
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
