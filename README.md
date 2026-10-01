@@ -27,7 +27,50 @@ reference/        # assignment PDFs, the dev plan, and an existing SmartAPI
 ```
 
 ## How to run
-_(filled in as each step lands)_
+
+### A backtest (paper broker, synthetic data)
+```python
+from datetime import datetime
+from decimal import Decimal
+
+from vera_quant.backtest import run_backtest
+from vera_quant.brokers.paper import PaperBroker
+from vera_quant.costs import CostRateSchedule
+from vera_quant.indicators import Atr
+from vera_quant.market_data import generate_synthetic_bars
+from vera_quant.models import Instrument
+from vera_quant.risk import RiskParams, RiskState, risk_gate
+from vera_quant.strategies import SarParams, SarState, sar_step
+
+instrument = Instrument(
+    exchange="NFO", trading_symbol="NIFTY25DECFUT", symbol_token="26000",
+    tick_size=Decimal("0.05"), lot_size=25,
+)
+bars = generate_synthetic_bars(
+    instrument_token="26000", start=datetime(2026, 1, 2, 9, 15),
+    periods=100, pattern="trend_up", seed=1,
+)
+
+atr, sar_state, sar_params = Atr(period=5), SarState(), SarParams()
+def decide(bar, position):
+    return sar_step(bar, atr.update(bar) or Decimal(0), position, sar_state, sar_params)
+
+risk_state, risk_params = RiskState(), RiskParams(
+    max_position_per_instrument=100, max_total_position=100, max_order_size=100,
+    max_daily_loss=Decimal("-1e6"), max_drawdown_pct=Decimal("0.99"),
+    reject_storm_max_rejects=999, reject_storm_window_seconds=60,
+    stale_data_max_seconds=999999,
+)
+def risk_check(intent, position, now):
+    risk_state.last_data_timestamp = now
+    return risk_gate(intent, position, abs(position.net_quantity), risk_state, risk_params, now=now)
+
+broker = PaperBroker(slippage_ticks=Decimal(1), cost_schedule=CostRateSchedule(), is_option=False)
+result = run_backtest(bars, instrument, decide, risk_check, broker)
+print(f"{len(result.fills)} fills, final P&L {result.final_position.realized_pnl}")
+```
+See `tests/test_backtest.py` for the same wiring exercised by the
+no-lookahead and golden-file regression tests.
 
 ## Vectorisation vs incremental (technical analysis module)
 Two different jobs get two different tools, deliberately — using the wrong

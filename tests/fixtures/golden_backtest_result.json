@@ -1,0 +1,37 @@
+{
+  "fill_count": 5,
+  "fills": [
+    {
+      "side": "BUY",
+      "quantity": 1,
+      "price": "99.90",
+      "fees": "0.00"
+    },
+    {
+      "side": "SELL",
+      "quantity": 2,
+      "price": "99.15",
+      "fees": "0.00"
+    },
+    {
+      "side": "BUY",
+      "quantity": 2,
+      "price": "99.00",
+      "fees": "0.00"
+    },
+    {
+      "side": "SELL",
+      "quantity": 2,
+      "price": "98.40",
+      "fees": "0.00"
+    },
+    {
+      "side": "BUY",
+      "quantity": 2,
+      "price": "97.60",
+      "fees": "0.00"
+    }
+  ],
+  "final_net_quantity": 1,
+  "final_realized_pnl": "-0.40"
+}
