@@ -1,11 +1,12 @@
-"""Tests for the cost-model CALCULATION STRUCTURE only.
+"""Tests for the cost-model calculation structure, plus (at the bottom) a
+check that `CostRateSchedule`'s real default rates compute exactly what
+hand-calculation from the sourced figures says they should (see
+`costs.py`'s module docstring for sourcing/date and the still-pending
+Angel-One-calculator/contract-note verification).
 
-The rate values below (SYNTHETIC_SCHEDULE) are made-up round numbers for
-exercising the formulas — they are NOT real STT/CTT/brokerage/GST rates.
-Real rates come from the user's own Angel One brokerage-calculator output
-and contract notes (pending) and will replace CostRateSchedule's defaults;
-a follow-up test comparing against that reference sheet to the paisa is
-still to be added once those numbers are supplied.
+SYNTHETIC_SCHEDULE below uses made-up round numbers — NOT real rates —
+purely to exercise the formulas independent of what the real numbers
+happen to be.
 """
 from decimal import Decimal
 
@@ -26,8 +27,10 @@ SYNTHETIC_SCHEDULE = CostRateSchedule(
     stt_options_sell_pct_of_premium=Decimal("0.001"),
     ctt_futures_sell_pct=Decimal("0.0001"),
     ctt_options_sell_pct_of_premium=Decimal("0.0005"),
-    exchange_txn_pct_futures=Decimal("0.000019"),
-    exchange_txn_pct_options_of_premium=Decimal("0.0005"),
+    exchange_txn_pct_nse_futures=Decimal("0.000019"),
+    exchange_txn_pct_nse_options_of_premium=Decimal("0.0005"),
+    exchange_txn_pct_mcx_futures=Decimal("0.000019"),
+    exchange_txn_pct_mcx_options_of_premium=Decimal("0.0005"),
     sebi_fee_pct=Decimal("0.000001"),
     stamp_duty_buy_pct_futures=Decimal("0.00002"),
     stamp_duty_buy_pct_options_of_premium=Decimal("0.00003"),
@@ -232,3 +235,68 @@ def test_every_component_is_rounded_to_the_paisa() -> None:
         leg.gst,
     ):
         assert component == component.quantize(Decimal("0.01"))
+
+
+# ----------------------------------------------------- real default rates
+#
+# CostRateSchedule() with no overrides = the sourced rates in costs.py
+# (web-searched 2026-10-01, dated and cited there). These tests hand-
+# calculate the expected cost from those documented percentages and
+# confirm the engine matches exactly — i.e. the defaults really do encode
+# what the module docstring claims. This is NOT the same as verification
+# against a real Angel One contract note (still pending from the user).
+
+
+def test_real_schedule_nse_future_sell_matches_hand_calculation() -> None:
+    # SELL 25 qty @ 20,000 -> turnover = 5,00,000.
+    leg = compute_trade_cost(
+        instrument=_nfo_future(),
+        transaction_type=TransactionType.SELL,
+        price=Decimal("20000"),
+        quantity=25,
+        is_option=False,
+        schedule=CostRateSchedule(),
+    )
+    turnover = Decimal("500000")
+    assert leg.brokerage == Decimal("20.00")  # flat, F&O
+    assert leg.stt == (turnover * Decimal("0.0005")).quantize(Decimal("0.01"))  # 250.00
+    assert leg.ctt == Decimal("0.00")
+    assert leg.exchange_txn_charge == (turnover * Decimal("0.000019")).quantize(Decimal("0.01"))
+    assert leg.sebi_fee == (turnover * Decimal("0.0000001")).quantize(Decimal("0.01"))
+    assert leg.stamp_duty == Decimal("0.00")  # sell side, never charged
+    gst_base = leg.brokerage + leg.exchange_txn_charge + leg.sebi_fee
+    assert leg.gst == (gst_base * Decimal("0.18")).quantize(Decimal("0.01"))
+
+
+def test_real_schedule_nse_future_buy_has_stamp_duty_not_stt() -> None:
+    leg = compute_trade_cost(
+        instrument=_nfo_future(),
+        transaction_type=TransactionType.BUY,
+        price=Decimal("20000"),
+        quantity=25,
+        is_option=False,
+        schedule=CostRateSchedule(),
+    )
+    turnover = Decimal("500000")
+    assert leg.stt == Decimal("0.00")  # STT is sell-side only
+    assert leg.stamp_duty == (turnover * Decimal("0.00002")).quantize(Decimal("0.01"))  # 10.00
+
+
+def test_real_schedule_mcx_future_sell_charges_ctt_not_stt() -> None:
+    # SELL 1 lot @ 70,000 -> turnover = 70,000.
+    leg = compute_trade_cost(
+        instrument=_mcx_future(),
+        transaction_type=TransactionType.SELL,
+        price=Decimal("70000"),
+        quantity=1,
+        is_option=False,
+        schedule=CostRateSchedule(),
+    )
+    turnover = Decimal("70000")
+    assert leg.stt == Decimal("0.00")
+    assert leg.ctt == (turnover * Decimal("0.0001")).quantize(Decimal("0.01"))  # 7.00
+    assert leg.exchange_txn_charge == (turnover * Decimal("0.000021")).quantize(Decimal("0.01"))
+
+
+def test_real_schedule_gst_rate_is_eighteen_percent() -> None:
+    assert CostRateSchedule().gst_pct == Decimal("0.18")

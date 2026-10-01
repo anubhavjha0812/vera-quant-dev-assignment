@@ -166,8 +166,7 @@ def run_live_session(
     for bar in bars:
         fills = broker.on_bar(bar)
         for fill in fills:
-            apply_fill(position, fill)
-            position.realized_pnl -= fill.fees
+            apply_fill(position, fill)  # fees are subtracted inside apply_fill
             journal.record_fill(fill)
 
         for intent in decide(bar, position):

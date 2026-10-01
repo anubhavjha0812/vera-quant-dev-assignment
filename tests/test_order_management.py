@@ -332,4 +332,5 @@ def test_rebuild_positions_from_fills_matches_manual_calculation() -> None:
     position = positions[inst.symbol_token]
     assert position.net_quantity == 5
     assert position.avg_price == Decimal("105")  # blended from the two buys
-    assert position.realized_pnl == Decimal("150")  # (115-105)*15 on the sell
+    # (115-105)*15 price P&L on the sell, minus 5+5+5 fees across all 3 fills
+    assert position.realized_pnl == Decimal("135")

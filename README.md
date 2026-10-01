@@ -22,8 +22,10 @@ along the way, by whom, and why.
 ### Before you submit
 A handful of items need your input, not more code — see the linked
 sections/decisions for the reasoning on each:
-- [ ] **Real cost-model rates** (STT/CTT/brokerage/GST) — structure is
-      built and tested, defaults are placeholders (`DECISIONS.md` #13).
+- [ ] **Cost-model rates**: filled in with sourced, dated figures
+      (`DECISIONS.md` #22) — still needs your own check against Angel
+      One's live calculator + a few real contract notes before trusting
+      "to the paisa" for submission.
 - [ ] **"Live trading experience" section** below — left blank for you.
 - [ ] **Verify `brokers/live_smartapi/` against the real SmartAPI SDK**
       (exact method names for `generateTokens`, modify/cancel, margin
@@ -83,7 +85,7 @@ path, not two that could silently drift (CLAUDE.md rule 3).
 | Strategy engines, TA, risk layer, cost model, backtest harness | **Live-ready** | Pure functions / deterministic objects, fully tested, no network dependency. |
 | `brokers/paper/` | **Live-ready** (it's the default) | Fully simulated, no real orders — the safe default (`BROKER_MODE=paper`). |
 | `brokers/live_smartapi/` (REST adapter, WebSocket feed) | **Built and tested against a mocked/fake client, not yet run against the real SmartAPI** | Correct SDK method names/response shapes for a few endpoints (`generateTokens`, modify/cancel, the margin calculator) are this adapter's best-effort mapping — only login/placeOrder/position/orderBook/getCandleData are directly evidenced by `reference/01-v6.py`. Needs a short verification pass against the installed `smartapi-python` SDK and real (sandboxed) credentials before `BROKER_MODE=live` is used for real. The `--confirm-live` + `LiveSafetyLimits` gates (CLAUDE.md rule 10) are already in place for when that happens. |
-| Cost model (`costs.py`) | **Structure live-ready, rates are placeholders** | STT/CTT/brokerage/GST change with the Union Budget; real figures are pending from you (`DECISIONS.md` #13) rather than guessed. |
+| Cost model (`costs.py`) | **Live-ready, rates sourced and dated (not guessed)** | STT/CTT/brokerage/GST change with the Union Budget — figures were pulled via live web search on 2026-10-01 (training data predates the 1 Feb 2026 Budget's STT hike) and cited per field in `costs.py`. Still pending your own check against Angel One's calculator + contract notes (`DECISIONS.md` #22). |
 | Streamlit dashboard, Grafana | **Not built** | Explicitly Good-to-Have in the email; deferred (`DECISIONS.md` #21). FastAPI's status endpoints exist and are tested. |
 
 ## Project layout

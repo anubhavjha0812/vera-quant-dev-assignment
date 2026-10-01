@@ -172,7 +172,18 @@ def test_stop_triggers_before_limit_when_both_cross_in_the_same_bar() -> None:
 
 
 def test_fill_fees_come_from_the_cost_schedule() -> None:
-    schedule = CostRateSchedule(brokerage_flat_per_order=Decimal("20"))
+    # Isolate brokerage: CostRateSchedule()'s other defaults are real
+    # nonzero rates now (DECISIONS.md #13), so they're explicitly zeroed
+    # here to test only "fees come from the schedule" without also
+    # exercising STT/exchange-txn/SEBI/GST (those are costs.py's own tests).
+    schedule = CostRateSchedule(
+        brokerage_flat_per_order=Decimal("20"),
+        stt_futures_sell_pct=Decimal("0"),
+        exchange_txn_pct_nse_futures=Decimal("0"),
+        sebi_fee_pct=Decimal("0"),
+        stamp_duty_buy_pct_futures=Decimal("0"),
+        gst_pct=Decimal("0"),
+    )
     broker = PaperBroker(slippage_ticks=Decimal(0), cost_schedule=schedule, is_option=False)
     bar0 = _bar("26000", datetime(2026, 1, 2, 9, 15), "100", "101", "99", "100.5")
     broker.on_bar(bar0)

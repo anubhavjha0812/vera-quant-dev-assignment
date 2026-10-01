@@ -62,8 +62,7 @@ def run_backtest(
         # 1. Resolve whatever was queued from a PRIOR bar's decision.
         fills = broker.on_bar(bar)
         for fill in fills:
-            apply_fill(position, fill)
-            position.realized_pnl -= fill.fees
+            apply_fill(position, fill)  # fees are subtracted inside apply_fill
             result.fills.append(fill)
             result.blotter.append(
                 TradeBlotterEntry(

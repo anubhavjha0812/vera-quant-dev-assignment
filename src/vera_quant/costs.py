@@ -1,12 +1,20 @@
 """Per-leg transaction cost model: brokerage, STT/CTT, exchange transaction
 charges, SEBI fee, stamp duty and GST.
 
-**Rate values in `CostRateSchedule` are placeholders (pending the user's own
-Angel One brokerage-calculator figures and real contract notes).** Nothing
-in this module hardcodes a rate — they all flow through `CostRateSchedule`,
-so dropping in the real numbers is a one-place change. Only the calculation
-*structure* (which charge applies on which side, what GST is computed on,
-rounding) is verified until then — see tests/test_costs.py.
+**`CostRateSchedule`'s defaults are sourced, dated rates — not guesses,
+and not the zero-placeholders this module shipped with (step 5).** They
+were pulled via live web search on 2026-10-01 (Claude's training data
+predates the 1 Feb 2026 Union Budget, which hiked F&O STT materially
+effective 1 Apr 2026 — exactly the kind of change that made guessing
+unsafe; see `DECISIONS.md` #13). Sources are cited per field below.
+
+**These still need your own final check** against Angel One's live
+brokerage calculator and a few of your own real contract notes before
+being trusted "to the paisa" for submission — that was always the
+dev plan's own instruction (the strongest proof), and a web search
+synthesis is a good starting point, not a replacement for it. Nothing in
+this module hardcodes a rate outside `CostRateSchedule` — they all flow
+through it, so correcting a figure is a one-place change.
 """
 from __future__ import annotations
 
@@ -28,40 +36,51 @@ class InstrumentSegment(str, Enum):
 
 @dataclass(frozen=True)
 class CostRateSchedule:
-    """All rates as decimal fractions (e.g. `Decimal("0.0002")` for 0.02%).
+    """All rates as decimal fractions (e.g. `Decimal("0.0005")` = 0.05%).
 
-    PLACEHOLDER VALUES — every field defaults to 0 and must be replaced with
-    the verified current rate before any output here can be trusted "to the
-    paisa". See the module docstring.
+    Sourced 2026-10-01 via web search (see module docstring); verify
+    against Angel One's calculator + your own contract notes before
+    trusting this "to the paisa."
     """
 
-    # Brokerage: flat fee per executed order, or a percentage of turnover,
-    # whichever is lower (standard discount-broker model).
-    brokerage_flat_per_order: Decimal = Decimal("0")
+    # Brokerage — Angel One F&O/commodity is flat per executed order (no
+    # percentage leg; that pricing only applies to the equity cash segment,
+    # which this project doesn't trade). [angelone.in/exchange-transaction-charges]
+    brokerage_flat_per_order: Decimal = Decimal("20")
     brokerage_pct_of_turnover: Decimal = Decimal("0")
 
     # Securities Transaction Tax — NSE F&O only, sell side only.
-    stt_futures_sell_pct: Decimal = Decimal("0")
-    stt_options_sell_pct_of_premium: Decimal = Decimal("0")
+    # Hiked by Union Budget 2026, effective 1 Apr 2026: futures 0.02% ->
+    # 0.05%; options premium 0.10% -> 0.15%. [lakshmishree.com/blog/securities-transaction-tax,
+    # hdfc.bank.in/blogs/union-budget/stt-hike-on-f-o-trading]
+    stt_futures_sell_pct: Decimal = Decimal("0.0005")
+    stt_options_sell_pct_of_premium: Decimal = Decimal("0.0015")
 
-    # Commodities Transaction Tax — MCX only, sell side only.
-    ctt_futures_sell_pct: Decimal = Decimal("0")
-    ctt_options_sell_pct_of_premium: Decimal = Decimal("0")
+    # Commodities Transaction Tax — MCX only, sell side only; agri
+    # commodities are CTT-exempt (not modelled — no agri instruments here).
+    # [mcxccl.com/clearing-settlement/commodities-transaction-tax]
+    ctt_futures_sell_pct: Decimal = Decimal("0.0001")
+    ctt_options_sell_pct_of_premium: Decimal = Decimal("0.0005")
 
-    # Exchange transaction charges — both sides.
-    exchange_txn_pct_futures: Decimal = Decimal("0")
-    exchange_txn_pct_options_of_premium: Decimal = Decimal("0")
+    # Exchange transaction charges — both sides, split by exchange since
+    # NSE and MCX differ (most visibly on options). [angelone.in/exchange-transaction-charges]
+    exchange_txn_pct_nse_futures: Decimal = Decimal("0.000019")  # ~0.0019%
+    exchange_txn_pct_nse_options_of_premium: Decimal = Decimal("0.0005")  # ~0.05%
+    exchange_txn_pct_mcx_futures: Decimal = Decimal("0.000021")  # 0.0021%
+    exchange_txn_pct_mcx_options_of_premium: Decimal = Decimal("0.000418")  # 0.0418%
 
-    # SEBI turnover fee — both sides, same rate for every segment.
-    sebi_fee_pct: Decimal = Decimal("0")
+    # SEBI turnover fee — ₹10/crore, both sides, same for every segment.
+    # [nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies]
+    sebi_fee_pct: Decimal = Decimal("0.0000001")
 
-    # Stamp duty — buy side only.
-    stamp_duty_buy_pct_futures: Decimal = Decimal("0")
-    stamp_duty_buy_pct_options_of_premium: Decimal = Decimal("0")
+    # Stamp duty — buy side only. [centralised stamp duty rules; figures
+    # per lakshmishree.com/blog/securities-transaction-tax]
+    stamp_duty_buy_pct_futures: Decimal = Decimal("0.00002")  # 0.002%
+    stamp_duty_buy_pct_options_of_premium: Decimal = Decimal("0.00003")  # 0.003%
 
     # GST — applied to (brokerage + exchange transaction charge + SEBI fee)
     # only. Never applied to STT, CTT or stamp duty.
-    gst_pct: Decimal = Decimal("0")
+    gst_pct: Decimal = Decimal("0.18")
 
 
 @dataclass(frozen=True)
@@ -131,24 +150,24 @@ def compute_trade_cost(
     if segment == InstrumentSegment.NSE_FUTURES:
         stt = turnover * schedule.stt_futures_sell_pct if is_sell else Decimal(0)
         ctt = Decimal(0)
-        exchange_txn = turnover * schedule.exchange_txn_pct_futures
+        exchange_txn = turnover * schedule.exchange_txn_pct_nse_futures
         stamp_duty = turnover * schedule.stamp_duty_buy_pct_futures if is_buy else Decimal(0)
     elif segment == InstrumentSegment.NSE_OPTIONS:
         stt = turnover * schedule.stt_options_sell_pct_of_premium if is_sell else Decimal(0)
         ctt = Decimal(0)
-        exchange_txn = turnover * schedule.exchange_txn_pct_options_of_premium
+        exchange_txn = turnover * schedule.exchange_txn_pct_nse_options_of_premium
         stamp_duty = (
             turnover * schedule.stamp_duty_buy_pct_options_of_premium if is_buy else Decimal(0)
         )
     elif segment == InstrumentSegment.MCX_FUTURES:
         stt = Decimal(0)
         ctt = turnover * schedule.ctt_futures_sell_pct if is_sell else Decimal(0)
-        exchange_txn = turnover * schedule.exchange_txn_pct_futures
+        exchange_txn = turnover * schedule.exchange_txn_pct_mcx_futures
         stamp_duty = turnover * schedule.stamp_duty_buy_pct_futures if is_buy else Decimal(0)
     else:  # MCX_OPTIONS
         stt = Decimal(0)
         ctt = turnover * schedule.ctt_options_sell_pct_of_premium if is_sell else Decimal(0)
-        exchange_txn = turnover * schedule.exchange_txn_pct_options_of_premium
+        exchange_txn = turnover * schedule.exchange_txn_pct_mcx_options_of_premium
         stamp_duty = (
             turnover * schedule.stamp_duty_buy_pct_options_of_premium if is_buy else Decimal(0)
         )

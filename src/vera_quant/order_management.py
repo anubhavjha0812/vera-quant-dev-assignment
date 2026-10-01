@@ -320,10 +320,17 @@ def place_idempotent(
 def apply_fill(position: Position, fill: Fill) -> None:
     """Updates `position` in place from a single fill. Positions and P&L
     are derived ONLY from fills — never from intents or broker-reported
-    state directly (dev-plan rule, step 10). Fees are not applied here;
-    they're the cost model's (step 5) concern and get combined into
-    overall P&L by whichever layer tracks it, not mixed into this
-    fill-driven average-price/realized-P&L calculation.
+    state directly (dev-plan rule, step 10).
+
+    `fill.fees` (step 5's cost model) is subtracted from `realized_pnl`
+    here, in the one place that touches it — every caller
+    (`backtest.run_backtest`, `live_runner.run_live_session`,
+    `rebuild_positions_from_fills` below) gets fee-aware P&L for free.
+    This used to be duplicated in both runners and silently missing from
+    `rebuild_positions_from_fills`, invisible only because fees defaulted
+    to zero; real rates (`DECISIONS.md` #13) exposed the drift between a
+    live run's P&L and the same P&L rebuilt from the journal after a
+    restart — exactly the mismatch step 16's alerting exists to catch.
     """
     signed_qty = fill.quantity if fill.transaction_type == TransactionType.BUY else -fill.quantity
     new_net = position.net_quantity + signed_qty
@@ -349,6 +356,7 @@ def apply_fill(position: Position, fill: Fill) -> None:
         # avg_price unchanged.
 
     position.net_quantity = new_net
+    position.realized_pnl -= fill.fees
 
 
 def rebuild_positions_from_fills(fills: list[Fill]) -> dict[str, Position]:
