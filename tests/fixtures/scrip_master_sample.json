@@ -1,0 +1,57 @@
+[
+  {
+    "token": "441250",
+    "symbol": "GOLD25DECFUT",
+    "name": "GOLD",
+    "expiry": "05DEC2025",
+    "strike": "-1.000000",
+    "lotsize": "1",
+    "instrumenttype": "FUTCOM",
+    "exch_seg": "MCX",
+    "tick_size": "100.000000"
+  },
+  {
+    "token": "441300",
+    "symbol": "GOLD26FEBFUT",
+    "name": "GOLD",
+    "expiry": "05FEB2026",
+    "strike": "-1.000000",
+    "lotsize": "1",
+    "instrumenttype": "FUTCOM",
+    "exch_seg": "MCX",
+    "tick_size": "100.000000"
+  },
+  {
+    "token": "441400",
+    "symbol": "SILVERMIC26JANFUT",
+    "name": "SILVERMIC",
+    "expiry": "30JAN2026",
+    "strike": "-1.000000",
+    "lotsize": "1",
+    "instrumenttype": "FUTCOM",
+    "exch_seg": "MCX",
+    "tick_size": "100.000000"
+  },
+  {
+    "token": "26000",
+    "symbol": "NIFTY25DECFUT",
+    "name": "NIFTY",
+    "expiry": "30DEC2025",
+    "strike": "-1.000000",
+    "lotsize": "25",
+    "instrumenttype": "FUTIDX",
+    "exch_seg": "NFO",
+    "tick_size": "5.000000"
+  },
+  {
+    "token": "26050",
+    "symbol": "NIFTY26JANFUT",
+    "name": "NIFTY",
+    "expiry": "27JAN2026",
+    "strike": "-1.000000",
+    "lotsize": "25",
+    "instrumenttype": "FUTIDX",
+    "exch_seg": "NFO",
+    "tick_size": "5.000000"
+  }
+]
