@@ -40,5 +40,6 @@ Newest entries at the bottom. "By" is **You** (Anubhav), **Claude**
   check, which the dev plan treats as the strongest proof.
 - More MCX quotation multipliers beyond Gold, if other commodities get
   traded — see #15.
-- When to flip the new GitHub repo from private to shared/public, and who
-  to add as a collaborator (#11).
+- Repo stays **private**; Purnima has been added as a collaborator (#11
+  update). Whether to add more reviewers or flip to public is still your
+  call if other people at Vera need access.
