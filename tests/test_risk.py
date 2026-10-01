@@ -1,15 +1,22 @@
 """Step 9's Done-when: tests show caps clipping orders and each kill switch
 halting trading.
 
-Flatten behavior is a parked decision (DECISIONS.md, "Still pending") —
-`flatten_intents()` exists and is tested on its own, but no kill switch
-wires it in automatically yet; every switch here only blocks new orders.
+Flatten-on-trip split (DECISIONS.md #19): manual/max_daily_loss/
+max_drawdown flatten every open position; reject_storm/stale_data only
+block new orders.
 """
 from datetime import datetime, timedelta
 from decimal import Decimal
 
 from vera_quant.models import Instrument, OrderIntent, OrderType, Position, TransactionType
-from vera_quant.risk import RiskParams, RiskState, check_kill_switches, flatten_intents, risk_gate
+from vera_quant.risk import (
+    RiskParams,
+    RiskState,
+    check_kill_switches,
+    flatten_intents,
+    maybe_flatten,
+    risk_gate,
+)
 
 NOW = datetime(2026, 1, 2, 10, 0, 0)
 
@@ -219,3 +226,55 @@ def test_flatten_intents_closes_every_nonzero_position() -> None:
     assert by_symbol[short_inst.trading_symbol].transaction_type == TransactionType.BUY
     assert by_symbol[short_inst.trading_symbol].quantity == 4
     assert all(i.reason == "manual_kill" for i in intents)
+
+
+# --------------------------------------------------------- flatten wiring --
+
+
+def _open_positions() -> list[Position]:
+    return [Position(instrument=_instrument("long"), net_quantity=5)]
+
+
+def test_maybe_flatten_triggers_on_manual() -> None:
+    state = RiskState(manual_kill=True)
+    intents = maybe_flatten(_open_positions(), state, _params(), now=NOW)
+    assert len(intents) == 1
+    assert intents[0].transaction_type == TransactionType.SELL
+    assert "manual" in intents[0].reason
+
+
+def test_maybe_flatten_triggers_on_max_daily_loss() -> None:
+    state = RiskState(daily_pnl=Decimal("-15000"))
+    params = _params(max_daily_loss=Decimal("-10000"))
+    intents = maybe_flatten(_open_positions(), state, params, now=NOW)
+    assert len(intents) == 1
+    assert "max_daily_loss" in intents[0].reason
+
+
+def test_maybe_flatten_triggers_on_max_drawdown() -> None:
+    state = RiskState(peak_equity=Decimal("100000"), current_equity=Decimal("75000"))
+    params = _params(max_drawdown_pct=Decimal("0.20"))
+    intents = maybe_flatten(_open_positions(), state, params, now=NOW)
+    assert len(intents) == 1
+    assert "max_drawdown" in intents[0].reason
+
+
+def test_maybe_flatten_does_not_trigger_on_reject_storm() -> None:
+    state = RiskState(
+        recent_rejects=[NOW - timedelta(seconds=10), NOW - timedelta(seconds=5), NOW]
+    )
+    params = _params(reject_storm_max_rejects=3, reject_storm_window_seconds=60)
+    assert "reject_storm" in check_kill_switches(state, params, now=NOW)  # confirms it IS tripped
+    assert maybe_flatten(_open_positions(), state, params, now=NOW) == []
+
+
+def test_maybe_flatten_does_not_trigger_on_stale_data() -> None:
+    state = RiskState(last_data_timestamp=NOW - timedelta(seconds=60))
+    params = _params(stale_data_max_seconds=30)
+    assert "stale_data" in check_kill_switches(state, params, now=NOW)  # confirms it IS tripped
+    assert maybe_flatten(_open_positions(), state, params, now=NOW) == []
+
+
+def test_maybe_flatten_returns_empty_when_nothing_tripped() -> None:
+    state = RiskState(last_data_timestamp=NOW)
+    assert maybe_flatten(_open_positions(), state, _params(), now=NOW) == []

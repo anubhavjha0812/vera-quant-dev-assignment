@@ -1,13 +1,12 @@
 """The risk layer: pre-trade caps (clip, don't just reject) and kill
-switches (block new orders).
+switches (block new orders, and some also flatten).
 
-**Flatten behavior is a parked decision** (see DECISIONS.md, "Still
-pending") — neither the email nor the dev plan specifies which of the 5
-kill switches should also auto-flatten open positions versus only block
-new orders. `flatten_intents()` exists and is independently tested, but no
-kill switch wires it in yet; every switch here only blocks. Wire a switch
-to call `flatten_intents()` once that decision is made — nothing else in
-this module needs to change.
+Flatten-on-trip split (DECISIONS.md #19): `manual`, `max_daily_loss` and
+`max_drawdown` trip on trustworthy state, so they flatten every open
+position. `reject_storm` and `stale_data` mean "don't trust the data or
+connection right now" — an automated flatten during a connectivity/feed
+problem could execute at a stale/bad price, or fail for the same reason
+the switch tripped — so they only block new orders.
 """
 from __future__ import annotations
 
@@ -131,8 +130,7 @@ def risk_gate(
 
 def flatten_intents(positions: list[Position], reason: str) -> list[OrderIntent]:
     """Closing `OrderIntent`s for every nonzero position — the opposite
-    side, full size. Not called automatically by any kill switch yet; see
-    the module docstring.
+    side, full size.
     """
     intents: list[OrderIntent] = []
     for position in positions:
@@ -149,3 +147,24 @@ def flatten_intents(positions: list[Position], reason: str) -> list[OrderIntent]
             )
         )
     return intents
+
+
+# Kill switches that, once tripped, also force a flatten — see the module
+# docstring and DECISIONS.md #19 for why these three and not the other two.
+FLATTEN_ON_TRIP = frozenset({"manual", "max_daily_loss", "max_drawdown"})
+
+
+def maybe_flatten(
+    positions: list[Position], state: RiskState, params: RiskParams, now: datetime
+) -> list[OrderIntent]:
+    """Called once per cycle (not per intent, unlike `risk_gate`) — if a
+    flatten-eligible kill switch is currently tripped, returns closing
+    intents for every open position; otherwise an empty list. A switch
+    that only blocks (`reject_storm`, `stale_data`) never reaches here.
+    """
+    tripped = check_kill_switches(state, params, now)
+    flatten_triggers = tripped & FLATTEN_ON_TRIP
+    if not flatten_triggers:
+        return []
+    reason = "kill_switch:" + "+".join(sorted(flatten_triggers))
+    return flatten_intents(positions, reason=reason)

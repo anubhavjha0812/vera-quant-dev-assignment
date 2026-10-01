@@ -27,6 +27,7 @@ Newest entries at the bottom. "By" is **You** (Anubhav), **Claude**
 | 17 | No external indicator library (**neither TA-Lib nor pandas-ta**) is a dependency anywhere. Step 7's tests compare the incremental per-bar implementation against a plain pandas/numpy reference formula written directly in the test file. | You + Claude | You ruled out TA-Lib (needs a separate compiled C library — breaks fresh-clone/CI/Docker setups). `pandas-ta` was the fallback, but it requires Python ≥3.12 while this project targets `^3.11`, and bumping the floor just for a test-only comparison wasn't worth narrowing compatibility. A hand-written vectorised reference gives the same validation with zero extra dependency and zero version risk. |
 
 | 18 | ATR grid algorithm (step 8): a **breakout/pyramiding** grid — adds a unit every `k_spacing*atr` the price moves favourably from a cycle anchor (up to `max_units`), and mirrors that level count back down on retrace (gives back a unit per level). Not a countertrend/averaging-down grid. | Claude | The email/plan name "ATR-based spacing, pyramiding" but don't specify the exact grid algorithm — there's no single standard one. Pyramiding specifically means adding to a *winning* position, which this does; documented precisely in `strategies.py`'s docstring so it's an explicit, testable spec rather than a guess. Flag if you intended the countertrend (buy-the-dip) variant instead — it'd be a different function. |
+| 19 | Kill-switch flatten behavior (step 9), **split by type**: `manual` / `max_daily_loss` / `max_drawdown` block new orders **and** auto-flatten every open position. `reject_storm` / `stale_data` only block new orders — no auto-flatten. | You | Neither the email nor the dev plan specifies this (confirmed — the email has one line: "kill switches, position caps," no detail). Three options were laid out; you picked the split. Rationale: the first three switches trip on trustworthy state (you know the loss/drawdown number, or a human hit the manual switch), so acting on it is safe. The last two mean "don't trust the data/connection right now" — an automated flatten during a connectivity/feed problem could execute at a stale or bad price, or the flatten order itself could fail for the same reason the switch tripped. |
 
 ## Still pending a decision from you
 
@@ -36,9 +37,3 @@ Newest entries at the bottom. "By" is **You** (Anubhav), **Claude**
   traded — see #15.
 - When to flip the new GitHub repo from private to shared/public, and who
   to add as a collaborator (#11).
-- **Step 9 kill-switch flatten behavior**: neither the email nor the dev plan
-  specifies which of the 5 kill switches (manual/daily-loss/drawdown/
-  reject-storm/stale-data) should auto-flatten positions vs just block new
-  orders. Three feasible options were on the table (split by type / all
-  flatten / none auto-flatten, human decides) — parked, revisit before
-  building Step 9.
