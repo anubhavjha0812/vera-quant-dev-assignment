@@ -4,6 +4,7 @@ must never import either concrete broker. A source-level check (not just
 "it happens to work today") so this can never silently regress once
 `brokers/live_smartapi` exists (step 12).
 """
+import ast
 from pathlib import Path
 
 BROKERS_DIR = Path(__file__).parent.parent / "src" / "vera_quant" / "brokers"
@@ -18,34 +19,42 @@ def _source_files(subpath: str) -> list[Path]:
     return list(target.rglob("*.py"))
 
 
-def _import_lines(path: Path) -> list[str]:
-    """Only actual `import`/`from ... import` lines — not docstring
-    mentions of the forbidden name (which this module's own docstring
-    has, by design, explaining why it doesn't import it)."""
-    return [
-        line
-        for line in path.read_text().splitlines()
-        if line.strip().startswith(("import ", "from "))
-    ]
+def _imported_modules(path: Path) -> set[str]:
+    """Real imported module names, parsed via `ast` — immune to a
+    docstring merely *mentioning* a forbidden name (this package's own
+    docstrings do, by design, to explain why they don't import it)."""
+    tree = ast.parse(path.read_text(), filename=str(path))
+    modules: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            modules.add(node.module)
+    return modules
 
 
 def test_paper_package_never_imports_live_smartapi() -> None:
     for path in _source_files("paper"):
-        for line in _import_lines(path):
-            assert "live_smartapi" not in line, f"{path}: {line!r} breaks package isolation"
+        modules = _imported_modules(path)
+        assert not any("live_smartapi" in m for m in modules), f"{path}: {modules}"
+
+
+def test_live_smartapi_package_never_imports_paper() -> None:
+    for path in _source_files("live_smartapi"):
+        modules = _imported_modules(path)
+        assert not any("brokers.paper" in m for m in modules), f"{path}: {modules}"
 
 
 def test_base_interface_never_imports_a_concrete_broker() -> None:
     for path in _source_files("base.py"):
-        for line in _import_lines(path):
-            assert "brokers.paper" not in line
-            assert "brokers.live_smartapi" not in line
+        modules = _imported_modules(path)
+        assert not any("brokers.paper" in m or "brokers.live_smartapi" in m for m in modules)
 
 
-def test_paper_broker_package_works_with_live_smartapi_absent() -> None:
-    """live_smartapi doesn't exist yet (step 12) — this is the actual
-    "delete the other package and nothing breaks" check for now; once
-    step 12 adds it, the equivalent test lands there for the reverse case.
+def test_both_broker_packages_import_cleanly_side_by_side() -> None:
+    """Runtime complement to the static checks above: importing both at
+    once (as the step-14 factory eventually will) never raises, which
+    would be the symptom of an accidental coupling the source scan missed.
     """
-    assert not (BROKERS_DIR / "live_smartapi").exists()
-    from vera_quant.brokers.paper import PaperBroker  # noqa: F401 -- import succeeding IS the test
+    from vera_quant.brokers.live_smartapi import SmartApiBroker  # noqa: F401
+    from vera_quant.brokers.paper import PaperBroker  # noqa: F401
