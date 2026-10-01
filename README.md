@@ -14,11 +14,24 @@
   policy, acceptance criterion is "matches to the paisa."
 
 ## Status
-Steps 1–16 of the dev plan are complete (see
-`reference/Vera_Quant_Dev_Assignment_Plan_SmartAPI.md` for the full
-17-step plan); step 17 (this README, Docker, final packaging) is in
-progress. `DECISIONS.md` logs every non-obvious call made along the way,
-by whom, and why.
+All 17 steps of the dev plan are built (see
+`reference/Vera_Quant_Dev_Assignment_Plan_SmartAPI.md` for the full plan)
+— 215 tests, all green. `DECISIONS.md` logs every non-obvious call made
+along the way, by whom, and why.
+
+### Before you submit
+A handful of items need your input, not more code — see the linked
+sections/decisions for the reasoning on each:
+- [ ] **Real cost-model rates** (STT/CTT/brokerage/GST) — structure is
+      built and tested, defaults are placeholders (`DECISIONS.md` #13).
+- [ ] **"Live trading experience" section** below — left blank for you.
+- [ ] **Verify `brokers/live_smartapi/` against the real SmartAPI SDK**
+      (exact method names for `generateTokens`, modify/cancel, margin
+      calculator) before ever setting `BROKER_MODE=live` for real — see
+      "Live-ready vs paper-only."
+- [ ] **Build-verify Docker** (`docker compose build`) — not possible in
+      the sandbox this was built in, see "With Docker" below.
+- [ ] **Push to GitHub** and reply to Purnima with the repo link.
 
 ## Architecture
 ```
