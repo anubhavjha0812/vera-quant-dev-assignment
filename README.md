@@ -96,14 +96,20 @@ calling that method:
   `iterrows()` has a bad reputation for, just hidden behind a vectorised
   call instead of an explicit loop.
 
-## Development
-```bash
-poetry install
-poetry run pre-commit install
-poetry run ruff check .
-poetry run mypy src
-poetry run pytest -q
-```
+## Race-condition stress test (step 13)
+`tests/test_websocket_feed.py::test_concurrent_tick_hammering_with_shutdown_is_deterministic`
+hammers 200 ticks at `LiveTickSource` from a background thread (simulating
+the SmartAPI SDK's own callback thread) while the main thread drains and
+shuts down, repeated 5 times. **No race was found** — every run ends on
+the same final conflated value. This holds by construction, not luck:
+`ConflatingTickBuffer` is a single `dict.__setitem__` per tick (atomic
+under the GIL) with no read-modify-write step, so interleaving at any
+point still leaves the dict in a valid state, and because the hammering
+thread pushes a *fixed, ordered* sequence, "whichever tick landed last"
+is always the same tick regardless of scheduling jitter. If a real
+implementation used a check-then-act pattern (e.g. "read the dict, decide,
+then write") instead, this is exactly where a race would show up — worth
+re-running this test after any change to `ConflatingTickBuffer`.
 
 ## Development
 ```bash
