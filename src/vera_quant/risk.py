@@ -37,16 +37,25 @@ class RiskState:
     current_equity: Decimal = field(default_factory=lambda: Decimal(0))
     recent_rejects: list[datetime] = field(default_factory=list)
     last_data_timestamp: datetime | None = None
+    # Set externally by the Macro Regime Engine (step 15) when it decides a
+    # circuit breaker should halt new entries, e.g. a VIX spike — risk.py
+    # doesn't import regime.py; it only reacts to this flag, same pattern
+    # as manual_kill. Block-only (the plan's own example says "halts new
+    # entries," not "flatten"), so it's not in FLATTEN_ON_TRIP.
+    regime_circuit_breaker: bool = False
 
 
 def check_kill_switches(state: RiskState, params: RiskParams, now: datetime) -> set[str]:
-    """Which of the 5 kill switches are tripped right now. Pure function of
+    """Which kill switches are tripped right now. Pure function of
     state + params + the current time — no side effects.
     """
     tripped: set[str] = set()
 
     if state.manual_kill:
         tripped.add("manual")
+
+    if state.regime_circuit_breaker:
+        tripped.add("regime_circuit_breaker")
 
     if state.daily_pnl <= params.max_daily_loss:
         tripped.add("max_daily_loss")
