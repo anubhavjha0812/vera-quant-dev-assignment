@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+.venv/
+venv/
+
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+.env
+*.env.local
+
+# data / journal artifacts generated at runtime
+*.sqlite3
+*.db
+/data/

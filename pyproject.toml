@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "vera-quant"
+version = "0.1.0"
+description = "Quant Developer assignment — Vera Developers"
+authors = ["Anubhav Jha <anubhavjha0812@gmail.com>"]
+packages = [{ include = "vera_quant", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2"
+numpy = "^1.26"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-cov = "^5.0"
+ruff = "^0.6"
+mypy = "^1.11"
+pre-commit = "^3.8"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["reference"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["vera_quant"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
