@@ -29,6 +29,39 @@ reference/        # assignment PDFs, the dev plan, and an existing SmartAPI
 ## How to run
 _(filled in as each step lands)_
 
+## Vectorisation vs incremental (technical analysis module)
+Two different jobs get two different tools, deliberately — using the wrong
+one for either is the actual `iterrows()` mistake, not just literally
+calling that method:
+
+- **Batch/offline work** — loading a Parquet file, resampling, computing a
+  backtest report's summary statistics — uses pandas/numpy vectorisation
+  (`market_data.py`'s storage functions, and the reference formulas in
+  `tests/test_indicators.py`). The whole series is known up front, there's
+  no per-bar state to carry forward, and a vectorised op is both simpler to
+  write and faster than a Python loop.
+- **The live/backtest hot path** — every indicator in `indicators.py`
+  (EMA, ADX, RSI, MACD, ATR, Bollinger, OBV, VWAP) — uses small, incremental
+  `.update()`-per-bar objects instead. Vectorisation is the *wrong* tool
+  here for two reasons: (1) live trading only ever has "the next bar," not
+  a full series to vectorise over, so the two code paths (backtest replay,
+  live tick-by-tick) would diverge if backtest used pandas and live used
+  something else; one incremental object run bar-by-bar in both is what
+  keeps them identical (CLAUDE.md rule 3). (2) Recomputing a vectorised
+  indicator over the whole history on every new bar, just to read the last
+  value, is O(n) work per bar instead of O(1) — the exact cost profile
+  `iterrows()` has a bad reputation for, just hidden behind a vectorised
+  call instead of an explicit loop.
+
+## Development
+```bash
+poetry install
+poetry run pre-commit install
+poetry run ruff check .
+poetry run mypy src
+poetry run pytest -q
+```
+
 ## Development
 ```bash
 poetry install
