@@ -119,7 +119,9 @@ reference/                       # assignment PDFs, the dev plan, a prior SmartA
 ### Quick demo (one command)
 ```bash
 poetry install
-poetry run demo-backtest   # or: python scripts/demo_backtest.py
+poetry run demo-backtest
+# or, inside an activated venv (poetry shell / poetry env activate first):
+#   python scripts/demo_backtest.py
 ```
 No network, no credentials — synthetic data through ATR+SAR, the risk
 layer and `PaperBroker`, printing fills/P&L/blotter. `poetry run pytest -q`
