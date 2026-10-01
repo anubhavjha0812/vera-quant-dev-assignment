@@ -36,3 +36,9 @@ Newest entries at the bottom. "By" is **You** (Anubhav), **Claude**
   traded — see #15.
 - When to flip the new GitHub repo from private to shared/public, and who
   to add as a collaborator (#11).
+- **Step 9 kill-switch flatten behavior**: neither the email nor the dev plan
+  specifies which of the 5 kill switches (manual/daily-loss/drawdown/
+  reject-storm/stale-data) should auto-flatten positions vs just block new
+  orders. Three feasible options were on the table (split by type / all
+  flatten / none auto-flatten, human decides) — parked, revisit before
+  building Step 9.
