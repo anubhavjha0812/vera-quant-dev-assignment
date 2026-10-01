@@ -31,6 +31,7 @@ RiskCheckFn = Callable[[OrderIntent, Position, datetime], OrderIntent | None]
 class TradeBlotterEntry:
     timestamp: datetime
     instrument_token: str
+    trading_symbol: str
     transaction_type: str
     quantity: int
     fill_price: Decimal
@@ -68,6 +69,7 @@ def run_backtest(
                 TradeBlotterEntry(
                     timestamp=bar.timestamp,
                     instrument_token=fill.instrument.symbol_token,
+                    trading_symbol=fill.instrument.trading_symbol,
                     transaction_type=fill.transaction_type.value,
                     quantity=fill.quantity,
                     fill_price=fill.fill_price,

@@ -10,6 +10,7 @@ python = "^3.11"
 pandas = "^2.2"
 numpy = "^1.26"
 pyarrow = "^25.0.1"
+fastapi = "^0.142.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -18,6 +19,7 @@ ruff = "^0.6"
 mypy = "^1.11"
 pre-commit = "^3.8"
 pandas-stubs = "^3.0.5.260914"
+httpx = "^0.28.1"
 
 [tool.ruff]
 line-length = 100
