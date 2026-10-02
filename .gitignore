@@ -25,3 +25,6 @@ learnings.md
 # logzero's default log output (SmartAPI SDK) -- can contain plaintext
 # credentials in error messages on a failed login, never commit this
 /logs/
+
+# user's own prior trading bot -- kept locally as a reference, never pushed
+/reference/01-v6.py
