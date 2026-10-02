@@ -6,6 +6,10 @@ services:
     build: .
     volumes:
       - ./:/app
+      # Anonymous volume: keeps the image's own .venv instead of letting
+      # the host's (built for the host's Python/arch) leak in through the
+      # bind mount above and get discarded/recreated on every run.
+      - /app/.venv
     command: ["python", "scripts/demo_backtest.py"]
     depends_on:
       - redis

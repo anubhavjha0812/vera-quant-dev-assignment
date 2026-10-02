@@ -84,18 +84,14 @@ first.
 docker compose up app                 # the same demo, containerised
 docker compose up -d redis grafana    # good-to-have infra, not yet wired into app code
 ```
-> ⚠️ `docker compose config` validates cleanly, and the exact install
-> sequence the Dockerfile runs (pip-install Poetry, install deps, copy
-> source, install the project, run the demo script, run the test suite)
-> was verified end-to-end in an isolated venv standing in for the
-> container — it caught and fixed a real bug this way: the Dockerfile
-> pinned `poetry==1.8.3`, but `poetry.lock` is lock-version 2.1, written
-> by Poetry 2.2.1, which 1.8.x can't read. Pinned to `poetry==2.2.1` now.
-> What's still untested is the literal `docker build`/`docker compose
-> build` command itself (base-image layer caching, `.dockerignore`
-> behaviour, etc.) — this sandbox has no Docker daemon access (socket
-> permission denied, no passwordless sudo). Run `docker compose build`
-> yourself once before relying on it.
+> ✅ **Build-verified.** `docker compose build` was run on the user's own
+> machine (2026-10-02) and completed cleanly — all 7 layers, image
+> `veera-app:latest` built successfully. The install-sequence rehearsal
+> described in `DECISIONS.md` #23 (done in a sandbox with no Docker
+> daemon access) caught and fixed the one real bug beforehand: the
+> Dockerfile pinned `poetry==1.8.3`, but `poetry.lock` is lock-version
+> 2.1, written by Poetry 2.2.1, which 1.8.x can't read — fixed to
+> `poetry==2.2.1`, and the real build confirmed that fix was sufficient.
 
 ### A backtest, wired up programmatically
 ```python
@@ -355,10 +351,7 @@ input, not more code — each links to where the reasoning already lives:
       (exact method names for `generateTokens`, modify/cancel, margin
       calculator) before ever setting `BROKER_MODE=live` for real — see
       "Live-ready vs paper-only" above.
-- [ ] **Run the literal `docker compose build`** — the install sequence
-      was verified end-to-end another way (see step 7 of Getting
-      Started), but the actual build command itself still needs a
-      machine with Docker daemon access, which this sandbox doesn't have.
+- [x] **Docker build** — verified on your machine 2026-10-02, builds clean.
 - [x] **Push to GitHub** and reply to Purnima with the repo link. — done.
 
 ---

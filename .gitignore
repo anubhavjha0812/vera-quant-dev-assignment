@@ -20,3 +20,4 @@ htmlcov/
 *.sqlite3
 *.db
 /data/
+learnings.md
