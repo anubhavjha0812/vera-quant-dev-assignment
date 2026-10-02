@@ -28,3 +28,4 @@ learnings.md
 
 # user's own prior trading bot -- kept locally as a reference, never pushed
 /reference/01-v6.py
+.env copy

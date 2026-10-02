@@ -134,7 +134,7 @@ that could silently drift (CLAUDE.md rule 3).
 |---|---|---|
 | Strategy engines, TA, risk layer, cost model, backtest harness | **Live-ready** | Pure functions / deterministic objects, fully tested, no network dependency. |
 | `brokers/paper/` | **Live-ready** (default) | Fully simulated, no real orders. |
-| `brokers/live_smartapi/` | **Built + tested against a mocked client; real-API connectivity checked, login not yet successful** | The official SDK + TOTP flow reaches the real SmartAPI endpoint and gets a structured response, but `generateSession` returned "INVALID MPIN" with the credentials tried on 2026-10-02 — not yet logged in for real (see `DECISIONS.md` #24). `placeOrder`/margin-calculator method names are still this adapter's best-effort mapping. `--confirm-live` + `LiveSafetyLimits` gates (CLAUDE.md rule 10) are already in place. |
+| `brokers/live_smartapi/` | **Built + tested against a mocked client; real login confirmed** | On 2026-10-02, `generateSession`/`getProfile`/`rmsLimit`/`orderBook`/`position`/`terminateSession` all succeeded against the real SmartAPI (`DECISIONS.md` #26). Still unconfirmed by design: `generateTokens` (session refresh), the real margin-*calculator* endpoint (`rmsLimit` was used as a stand-in), and `placeOrder`/modify/cancel (never called — no real order should be risked outside a deliberate `BROKER_MODE=live` test). `--confirm-live` + `LiveSafetyLimits` gates (CLAUDE.md rule 10) are already in place for when that happens. |
 | Cost model (`costs.py`) | **Live-ready, rates sourced and dated** | Pulled via web search 2026-10-01, cited per field in `costs.py`. Still pending your own check against Angel One's calculator + contract notes (`DECISIONS.md` #22). |
 | Streamlit dashboard, Grafana | **Not built** | Good-to-Have, deferred (`DECISIONS.md` #21). FastAPI status endpoints exist and are tested. |
 
@@ -235,11 +235,11 @@ All 17 steps are built, 219 tests green.
       (`DECISIONS.md` #22) — still needs your own check against Angel
       One's calculator + contract notes before trusting "to the paisa."
 - [ ] **"Live trading experience"** section above — left blank for you.
-- [ ] **SmartAPI live verification**: real-API connectivity checked, but
-      login itself failed ("INVALID MPIN") with the credentials tried —
-      double-check `ANGEL_PASSWORD` in `.env` is your current MPIN, then
-      retry (`DECISIONS.md` #24). `placeOrder`/margin-calculator method
-      names are still best-effort — verify before `BROKER_MODE=live`.
+- [x] **SmartAPI real login** — confirmed 2026-10-02 (`DECISIONS.md` #26).
+      Still pending: `generateTokens` (session refresh) and the real
+      margin-*calculator* endpoint are unconfirmed; `placeOrder` is
+      intentionally never tested outside a deliberate `BROKER_MODE=live`
+      run — verify before using that mode for real.
 - [x] **Docker build** — verified on your machine 2026-10-02.
 - [x] **Push to GitHub** and reply to Purnima — done.
 
