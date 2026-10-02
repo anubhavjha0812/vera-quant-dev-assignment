@@ -21,3 +21,7 @@ htmlcov/
 *.db
 /data/
 learnings.md
+
+# logzero's default log output (SmartAPI SDK) -- can contain plaintext
+# credentials in error messages on a failed login, never commit this
+/logs/
