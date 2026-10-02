@@ -123,45 +123,8 @@ no-lookahead and golden-file regression tests.
 ---
 
 ## Architecture
-```
-                     ┌─────────────┐
-   market_data.py ──▶│  BarAggregator / TickSource │
-   (synthetic, Parquet,            indicators.py
-    getCandleData)                 (EMA, RSI, MACD, ATR,
-         │                          Bollinger, ADX, OBV, VWAP)
-         ▼                                │
-   ┌──────────────────────────────────────▼───────────┐
-   │   strategies.py (grid_step / sar_step)            │
-   │   regime.py overrides params per macro regime      │
-   └──────────────────────┬─────────────────────────────┘
-                           │ OrderIntent
-                           ▼
-                     risk.py (caps, clip,
-                     kill switches, circuit breaker)
-                           │ OrderIntent | None
-                           ▼
-            ┌──────────────┴───────────────┐
-            │   brokers/base.py (interface)  │
-            └──────┬────────────────┬────────┘
-                    ▼                ▼
-          brokers/paper/     brokers/live_smartapi/
-          (fill simulation)  (REST + WebSocket 2.0,
-                               never imports paper)
-                    │                │
-                    └───────┬────────┘
-                             ▼
-                    order_management.py
-                 (idempotency key, SQLite
-                  journal, Order state machine,
-                  position/P&L from fills only)
-                             │
-               ┌─────────────┼──────────────┐
-               ▼             ▼              ▼
-       backtest.py   live_runner.py   observability.py /
-       (journal-free,  (journal-backed, alerts.py /
-        fast reruns)    reconcile on     reconciliation.py /
-                        restart)         status_service.py
-```
+![Architecture: market data through indicators, strategies (regime-overridden), risk, the paper/live broker split, order management, and out to backtest/live/observability](docs/architecture.png)
+
 `backtest.py` and `live_runner.py` call the exact same `decide` (strategy),
 `risk_check` (risk layer) and `Broker` objects — one code path, not two
 that could silently drift (CLAUDE.md rule 3).
