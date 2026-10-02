@@ -47,6 +47,17 @@ Newest entries at the bottom. "By" is **You** (Anubhav), **Claude**
   the SDK's own error logging.
 - More MCX quotation multipliers beyond Gold, if other commodities get
   traded — see #15.
-- Repo stays **private**; Purnima has been added as a collaborator (#11
-  update). Whether to add more reviewers or flip to public is still your
-  call if other people at Vera need access.
+- Repo was private with Purnima as a collaborator (#11); you've now
+  decided to **flip it to public** and have her do a fresh clone — this
+  also sidesteps the `01-v6.py` history-rewrite caveat (#25): a fresh
+  clone after the rewrite + force-push never sees the removed file,
+  regardless of what any earlier clone might have cached. GitHub
+  visibility change is yours to make (Settings → Danger Zone) — no
+  repo-API access from this session.
+- #25: `reference/01-v6.py` removed from the working tree (commit
+  `5ff5dca`) **and then from all of git history** via `git filter-repo
+  --path reference/01-v6.py --invert-paths --force` + `git push --force`,
+  run by you on 2026-10-02. Confirmed gone from `git log --all` afterward;
+  219 tests still pass. Claude's own attempt to install `git-filter-repo`
+  was blocked by Claude Code's destructive-git-action safety classifier —
+  you ran the rewrite and force-push yourself.
