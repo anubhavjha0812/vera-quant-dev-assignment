@@ -6,7 +6,7 @@ Regime Engine, Angel One SmartAPI integration, a bar-accurate backtest
 harness, idempotent order management, and observability — `Decimal`-only
 money, no lookahead, one code path shared by backtest and live.
 
-**Status:** all 17 steps of the dev plan are built — **219 tests, all
+**Status:** all 17 steps of the dev plan are built — **235 tests, all
 green.** See `DECISIONS.md` for every non-obvious call made along the way,
 and "Status & before you submit" below for what's still pending.
 
@@ -37,7 +37,7 @@ cd vera-quant-dev-assignment
 ```bash
 docker compose build          # builds the image
 docker compose up app         # runs the demo backtest, containerised
-docker compose run --rm app poetry run pytest -q   # 219 tests
+docker compose run --rm app poetry run pytest -q   # 235 tests
 ```
 Confirmed working end-to-end on 2026-10-02 (build + demo + full test suite
 all passed in the container). See `DECISIONS.md` #23 if curious about the
@@ -47,8 +47,9 @@ one bug this caught (a Poetry version mismatch) before the real build.
 Requires Python 3.11+ and [Poetry](https://python-poetry.org/docs/#installation).
 ```bash
 poetry install                # package + dev tools into an isolated venv
-poetry run pytest -q          # 219 tests
+poetry run pytest -q          # 235 tests
 poetry run demo-backtest      # synthetic data -> strategy -> risk -> PaperBroker
+poetry run streamlit run src/vera_quant/dashboard.py   # status dashboard, demo mode
 ```
 No network or credentials needed for any of the above — every
 broker/network interaction in the suite is a fake or mock.
@@ -136,7 +137,8 @@ that could silently drift (CLAUDE.md rule 3).
 | `brokers/paper/` | **Live-ready** (default) | Fully simulated, no real orders. |
 | `brokers/live_smartapi/` | **Built + tested against a mocked client; real login confirmed** | On 2026-10-02, `generateSession`/`getProfile`/`rmsLimit`/`orderBook`/`position`/`terminateSession` all succeeded against the real SmartAPI (`DECISIONS.md` #26). Still unconfirmed by design: `generateTokens` (session refresh), the real margin-*calculator* endpoint (`rmsLimit` was used as a stand-in), and `placeOrder`/modify/cancel (never called — no real order should be risked outside a deliberate `BROKER_MODE=live` test). `--confirm-live` + `LiveSafetyLimits` gates (CLAUDE.md rule 10) are already in place for when that happens. |
 | Cost model (`costs.py`) | **Live-ready, rates sourced and dated** | Pulled via web search 2026-10-01, cited per field in `costs.py`. Still pending your own check against Angel One's calculator + contract notes (`DECISIONS.md` #22). |
-| Streamlit dashboard, Grafana | **Not built** | Good-to-Have, deferred (`DECISIONS.md` #21). FastAPI status endpoints exist and are tested. |
+| Streamlit dashboard | **Built — `dashboard.py`** | Positions, P&L curve, open orders, trade blotter, regime, kill switches. Demo mode by default (in-process backtest, no network); `STATUS_SERVICE_URL` switches to a real running status service (`DECISIONS.md` #27). |
+| Grafana | **Not built** | Still Good-to-Have, still deferred (`DECISIONS.md` #21) — needs docker-compose + a running metrics exporter, a different gap than Streamlit's was. |
 
 ---
 
@@ -229,7 +231,7 @@ to assert on your behalf.)*
 ---
 
 ## Status & before you submit
-All 17 steps are built, 219 tests green.
+All 17 steps are built, 235 tests green.
 
 - [ ] **Cost-model rates**: sourced, dated figures in place
       (`DECISIONS.md` #22) — still needs your own check against Angel
@@ -276,6 +278,6 @@ updated to point at the actual files.
 | Good-to-have: live trading experience | — | "Live trading experience" above *(you to fill in)* |
 | Good-to-have: TA-Lib/pandas-ta/vectorbt/backtrader opinions | — | "Design notes" above |
 | Good-to-have: Postgres/TimescaleDB/DuckDB/Parquet, Redis, Docker | `market_data.py` (Parquet), `Dockerfile`, `docker-compose.yml` | `test_market_data.py` |
-| Good-to-have: Streamlit/FastAPI dashboards; Grafana | `status_service.py` (FastAPI built; Streamlit/Grafana deferred, `DECISIONS.md` #21) | `test_status_service.py` |
+| Good-to-have: Streamlit/FastAPI dashboards; Grafana | `status_service.py`, `dashboard_data.py`, `dashboard.py` (Grafana still deferred, `DECISIONS.md` #21) | `test_status_service.py`, `test_dashboard_data.py`, `test_dashboard.py` |
 | Good-to-have: tick-level data pipelines | `market_data.py` (`ParquetReplayTickSource`) | `test_market_data.py` |
 | Deadline: submit by 1 October 2026 | — | — |
